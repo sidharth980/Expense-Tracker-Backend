@@ -1,6 +1,7 @@
 package com.example.expt.service.impl;
 
 import com.example.expt.entity.Account;
+import com.example.expt.entity.AccountType;
 import com.example.expt.entity.User;
 import com.example.expt.repository.AccountRepository;
 import com.example.expt.repository.UserRepository;
@@ -69,11 +70,13 @@ public class AccountServiceImpl implements AccountService {
 
         BigDecimal currentBalance = account.getBalance();
         if (currentBalance == null) {
-            // Initialize balance to zero if it's null, though it should ideally be initialized when account is created.
             currentBalance = BigDecimal.ZERO;
         }
-        // Assuming amountChange is the expense amount, so we subtract it.
-        BigDecimal newBalance = currentBalance.subtract(amountChange);
+
+        BigDecimal newBalance = currentBalance.add(amountChange);
+        if(account.getAccountType().equals(AccountType.CREDIT_CARD)){
+            newBalance = currentBalance.subtract(amountChange);
+        }
         account.setBalance(newBalance);
         accountRepository.save(account);
     }

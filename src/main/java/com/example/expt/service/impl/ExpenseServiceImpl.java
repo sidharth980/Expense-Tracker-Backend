@@ -18,7 +18,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -92,6 +95,29 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Override
     public List<Expense> getExpensesByUserId(Long userId) {
         User user = userRepository.findById(userId).get();
-        return expenseRepository.findExpensesByPaidByUser(user);
+        List<Expense> expensesByPaidByUser = expenseRepository.findExpensesByPaidByUser(user);
+        expensesByPaidByUser.sort(Comparator.comparing(Expense::getCreatedAt));
+        return expensesByPaidByUser;
+    }
+
+    @Override
+    public Map<String, Double> getExpensesByUserIdAndMonth(Long userId) {
+        LocalDate today = LocalDate.now();
+        User user = User.builder().userId(userId).build();
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+        List<Expense> expensesByPaidByUserAndExpenseDateBetween = expenseRepository.
+                findExpensesByPaidByUserAndExpenseDateBetween(user, startOfMonth,
+                endOfMonth);
+        Map<String, Double> expensesByPaidByUserAndExpenseDate = new HashMap<>();
+        expensesByPaidByUserAndExpenseDateBetween.forEach(expense ->
+            addToMap(expense, expensesByPaidByUserAndExpenseDate));
+        return expensesByPaidByUserAndExpenseDate;
+    }
+
+    private static void addToMap(Expense expense, Map<String, Double> expensesByPaidByUserAndExpenseDate) {
+        double values = expensesByPaidByUserAndExpenseDate.getOrDefault(expense.getCategory(), 0.0)
+                + expense.getAmount().doubleValue() - expense.getShares().stream().map(ExpenseSplit::getOwesAmount).reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
+        expensesByPaidByUserAndExpenseDate.put(expense.getCategory(), values);
     }
 }
