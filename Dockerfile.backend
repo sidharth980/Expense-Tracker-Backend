@@ -1,0 +1,23 @@
+# Use OpenJDK 17 as base image
+FROM openjdk:17-jdk-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy all project files
+COPY . .
+
+# Make gradlew executable
+RUN chmod +x ./gradlew
+
+# Build the application
+RUN ./gradlew build -x test
+
+# Debug: List the contents of build/libs to see what JAR files are created
+RUN ls -la build/libs/
+
+# Expose port 8080
+EXPOSE 8080
+
+# Run the application using a more flexible approach
+CMD ["sh", "-c", "java -jar build/libs/*.jar"]

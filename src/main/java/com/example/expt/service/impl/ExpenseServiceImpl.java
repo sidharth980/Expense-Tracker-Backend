@@ -109,12 +109,12 @@ public class ExpenseServiceImpl implements ExpenseService {
     public Map<String, Double> getExpensesByUserIdAndMonth(Long userId) {
         LocalDate today = LocalDate.now();
         User user = User.builder().userId(userId).build();
-        System.out.println("Today is: " + today);
-//        LocalDate startOfMonth = today.withDayOfMonth(1);
-//        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
         List<Expense> expensesByPaidByUserAndExpenseDateBetween = expenseRepository.
-                findExpensesByPaidByUserAndExpenseDateBetween(user, today.minusMonths(1),
-                today);
+                findExpensesByPaidByUserAndExpenseDateBetween(user, startOfMonth,
+                        endOfMonth);
+
         Map<String, Double> expensesByPaidByUserAndExpenseDate = new HashMap<>();
         expensesByPaidByUserAndExpenseDateBetween.forEach(expense ->
             addToMap(expense, expensesByPaidByUserAndExpenseDate));
