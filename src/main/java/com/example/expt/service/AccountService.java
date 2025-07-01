@@ -1,5 +1,6 @@
 package com.example.expt.service;
 
+import com.example.expt.controller.PayCreditCardRequest;
 import com.example.expt.entity.Account;
 
 import java.util.List;
@@ -12,4 +13,5 @@ public interface AccountService {
     Account updateAccount(Long accountId, Account account);
     void deleteAccount(Long accountId);
     void updateAccountBalance(Long accountId, BigDecimal amountChange);
+    void payCreditCardStatement(PayCreditCardRequest request);
 }

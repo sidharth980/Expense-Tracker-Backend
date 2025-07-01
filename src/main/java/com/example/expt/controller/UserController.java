@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/users")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -22,8 +24,8 @@ public class UserController {
         return userService.getUserById(userId);
     }
 
-    @GetMapping("/other/{currentUserId}")
-    public User getOtherUser(@PathVariable Long currentUserId) {
-        return userService.getOtherUser(currentUserId);
+    @GetMapping
+    public List<User> getOtherUser() {
+        return userService.getAllUsers();
     }
 }

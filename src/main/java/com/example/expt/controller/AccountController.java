@@ -50,4 +50,10 @@ public class AccountController {
         accountService.deleteAccount(accountId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
+    @PostMapping("/pay-credit-card")
+    public ResponseEntity<String> payCreditCardStatement(@RequestBody PayCreditCardRequest request) {
+        accountService.payCreditCardStatement(request);
+        return new ResponseEntity<>("Credit card payment processed successfully", HttpStatus.OK);
+    }
 }

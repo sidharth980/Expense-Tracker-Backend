@@ -1,5 +1,6 @@
 package com.example.expt.service.impl;
 
+import com.example.expt.controller.DebtSettlementRequest;
 import com.example.expt.controller.DebtSummaryResponse;
 import com.example.expt.controller.ExpenseRequest;
 import com.example.expt.entity.Account;
@@ -108,11 +109,12 @@ public class ExpenseServiceImpl implements ExpenseService {
     public Map<String, Double> getExpensesByUserIdAndMonth(Long userId) {
         LocalDate today = LocalDate.now();
         User user = User.builder().userId(userId).build();
-        LocalDate startOfMonth = today.withDayOfMonth(1);
-        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+        System.out.println("Today is: " + today);
+//        LocalDate startOfMonth = today.withDayOfMonth(1);
+//        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
         List<Expense> expensesByPaidByUserAndExpenseDateBetween = expenseRepository.
-                findExpensesByPaidByUserAndExpenseDateBetween(user, startOfMonth,
-                endOfMonth);
+                findExpensesByPaidByUserAndExpenseDateBetween(user, today.minusMonths(1),
+                today);
         Map<String, Double> expensesByPaidByUserAndExpenseDate = new HashMap<>();
         expensesByPaidByUserAndExpenseDateBetween.forEach(expense ->
             addToMap(expense, expensesByPaidByUserAndExpenseDate));
@@ -120,6 +122,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     private static void addToMap(Expense expense, Map<String, Double> expensesByPaidByUserAndExpenseDate) {
+        if (expense.getCategory().equals("statement")){
+            return;
+        }
         double values = expensesByPaidByUserAndExpenseDate.getOrDefault(expense.getCategory(), 0.0)
                 + expense.getAmount().doubleValue() - expense.getShares().stream().map(ExpenseSplit::getOwesAmount).reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
         expensesByPaidByUserAndExpenseDate.put(expense.getCategory(), values);
@@ -127,14 +132,14 @@ public class ExpenseServiceImpl implements ExpenseService {
     
     @Override
     public List<DebtSummaryResponse> getDebtSummary(Long userId) {
-        List<ExpenseSplit> allSplits = expenseSplitRepository.findAll();
+        List<ExpenseSplit> allSplits = expenseSplitRepository.findAllByIsSettled(false);
         Map<Long, DebtCalculation> debtMap = new HashMap<>();
         
         for (ExpenseSplit split : allSplits) {
             Long paidByUserId = split.getExpense().getPaidByUser().getUserId();
             Long owesUserId = split.getUser().getUserId();
             BigDecimal amount = split.getOwesAmount();
-            
+
             if (paidByUserId.equals(userId)) {
                 debtMap.computeIfAbsent(owesUserId, k -> new DebtCalculation())
                     .addTheyOwe(amount);
@@ -165,6 +170,53 @@ public class ExpenseServiceImpl implements ExpenseService {
         return result;
     }
     
+    @Override
+    @Transactional
+    public String settleDebt(DebtSettlementRequest request) {
+        if (request.amountPaid() == null || request.amountPaid().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount paid must be positive");
+        }
+
+        List<ExpenseSplit> unsettledSplits = expenseSplitRepository
+                .findUnsettledSplitsByUserAndSettler(request.userId(), request.settlersUserId());
+
+        if (unsettledSplits.isEmpty()) {
+            return "No unsettled debts found between these users";
+        }
+
+        BigDecimal remainingAmount = request.amountPaid();
+        int settledCount = 0;
+        BigDecimal totalSettled = BigDecimal.ZERO;
+
+        for (ExpenseSplit split : unsettledSplits) {
+            if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                break;
+            }
+
+            BigDecimal owesAmount = split.getOwesAmount();
+            
+            if (remainingAmount.compareTo(owesAmount) >= 0) {
+                split.setIsSettled(true);
+//                remainingAmount = remainingAmount.subtract(owesAmount);
+                totalSettled = totalSettled.add(owesAmount);
+                settledCount++;
+            } else {
+                split.setOwesAmount(owesAmount.subtract(remainingAmount));
+                totalSettled = totalSettled.add(remainingAmount);
+                remainingAmount = BigDecimal.ZERO;
+            }
+            
+            expenseSplitRepository.save(split);
+        }
+
+        ExpenseRequest expenseRequest = new ExpenseRequest(request.userId(), request.accountId(), "Settle", "Settle", totalSettled, null, null, LocalDate.now());
+        addExpense(expenseRequest);
+
+
+        return String.format("Settlement completed. Settled %d expense splits totaling $%.2f. Remaining amount: $%.2f", 
+                settledCount, totalSettled.doubleValue(), remainingAmount.doubleValue());
+    }
+
     private static class DebtCalculation {
         BigDecimal youOwe = BigDecimal.ZERO;
         BigDecimal theyOwe = BigDecimal.ZERO;

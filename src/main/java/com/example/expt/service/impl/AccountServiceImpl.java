@@ -1,14 +1,19 @@
 package com.example.expt.service.impl;
 
+import com.example.expt.controller.PayCreditCardRequest;
 import com.example.expt.entity.Account;
 import com.example.expt.entity.AccountType;
+import com.example.expt.entity.Expense;
 import com.example.expt.entity.User;
 import com.example.expt.repository.AccountRepository;
+import com.example.expt.repository.ExpenseRepository;
 import com.example.expt.repository.UserRepository;
 import com.example.expt.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.math.BigDecimal;
@@ -18,11 +23,13 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
+    private final ExpenseRepository expenseRepository;
 
     @Autowired
-    public AccountServiceImpl(AccountRepository accountRepository, UserRepository userRepository) {
+    public AccountServiceImpl(AccountRepository accountRepository, UserRepository userRepository, ExpenseRepository expenseRepository) {
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
+        this.expenseRepository = expenseRepository;
     }
 
     @Override
@@ -79,5 +86,49 @@ public class AccountServiceImpl implements AccountService {
         }
         account.setBalance(newBalance);
         accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional
+    public void payCreditCardStatement(PayCreditCardRequest request) {
+        Account creditCardAccount = accountRepository.findById(request.getCreditCardAccountId())
+                .orElseThrow(() -> new NoSuchElementException("Credit card account not found with id: " + request.getCreditCardAccountId()));
+        
+        Account paidByAccount = accountRepository.findById(request.getPaidByAccountId())
+                .orElseThrow(() -> new NoSuchElementException("Payment account not found with id: " + request.getPaidByAccountId()));
+
+        if (!creditCardAccount.getAccountType().equals(AccountType.CREDIT_CARD)) {
+            throw new IllegalArgumentException("Account " + request.getCreditCardAccountId() + " is not a credit card account");
+        }
+
+        BigDecimal currentCreditBalance = creditCardAccount.getBalance();
+        if (currentCreditBalance == null) {
+            currentCreditBalance = BigDecimal.ZERO;
+        }
+
+        BigDecimal newCreditBalance = currentCreditBalance.subtract(request.getAmount());
+        creditCardAccount.setBalance(newCreditBalance);
+
+        BigDecimal currentPaymentBalance = paidByAccount.getBalance();
+        if (currentPaymentBalance == null) {
+            currentPaymentBalance = BigDecimal.ZERO;
+        }
+
+        BigDecimal newPaymentBalance = currentPaymentBalance.subtract(request.getAmount());
+        paidByAccount.setBalance(newPaymentBalance);
+
+        Expense statementExpense = Expense.builder()
+                .description("Credit Card Statement Payment - " + creditCardAccount.getAccountName())
+                .amount(request.getAmount())
+                .expenseDate(request.getPaymentDate())
+                .paidByUser(paidByAccount.getUser())
+                .account(paidByAccount)
+                .category("statement")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        accountRepository.save(creditCardAccount);
+        accountRepository.save(paidByAccount);
+        expenseRepository.save(statementExpense);
     }
 }

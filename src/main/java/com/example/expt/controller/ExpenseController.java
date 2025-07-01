@@ -41,4 +41,10 @@ public class ExpenseController {
         List<DebtSummaryResponse> debtSummary = expenseService.getDebtSummary(userId);
         return new ResponseEntity<>(debtSummary, HttpStatus.OK);
     }
+
+    @PostMapping("/settle-debt")
+    public ResponseEntity<String> settleDebt(@RequestBody DebtSettlementRequest request) {
+            String result = expenseService.settleDebt(request);
+            return new ResponseEntity<>(result, HttpStatus.OK);
+    }
 }
