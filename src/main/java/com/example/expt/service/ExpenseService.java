@@ -1,5 +1,6 @@
 package com.example.expt.service;
 
+import com.example.expt.controller.DebtSummaryResponse;
 import com.example.expt.controller.ExpenseRequest;
 import com.example.expt.entity.Expense;
 import jakarta.transaction.Transactional;
@@ -16,4 +17,6 @@ public interface ExpenseService {
     List<Expense> getExpensesByUserId(Long userId);
 
     Map<String, Double> getExpensesByUserIdAndMonth(Long userId);
+
+    List<DebtSummaryResponse> getDebtSummary(Long userId);
 }

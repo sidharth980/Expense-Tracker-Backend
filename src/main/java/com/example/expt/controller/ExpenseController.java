@@ -35,4 +35,10 @@ public class ExpenseController {
         Map<String, Double> expenses = expenseService.getExpensesByUserIdAndMonth(userId);
         return new ResponseEntity<>(expenses, HttpStatus.OK);
     }
+
+    @GetMapping("/debt/{userId}")
+    public ResponseEntity<List<DebtSummaryResponse>> getDebtSummary(@PathVariable Long userId) {
+        List<DebtSummaryResponse> debtSummary = expenseService.getDebtSummary(userId);
+        return new ResponseEntity<>(debtSummary, HttpStatus.OK);
+    }
 }

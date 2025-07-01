@@ -1,5 +1,6 @@
 package com.example.expt.service.impl;
 
+import com.example.expt.controller.DebtSummaryResponse;
 import com.example.expt.controller.ExpenseRequest;
 import com.example.expt.entity.Account;
 import com.example.expt.entity.Expense;
@@ -7,6 +8,7 @@ import com.example.expt.entity.ExpenseSplit;
 import com.example.expt.entity.User;
 import com.example.expt.repository.AccountRepository;
 import com.example.expt.repository.ExpenseRepository;
+import com.example.expt.repository.ExpenseSplitRepository;
 import com.example.expt.repository.UserRepository;
 import com.example.expt.service.AccountService;
 import com.example.expt.service.ExpenseService;
@@ -34,6 +36,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     private UserRepository userRepository;
 
     private final AccountRepository accountRepository;
+    
+    private ExpenseSplitRepository expenseSplitRepository;
 
     @Override
     @Transactional
@@ -119,5 +123,58 @@ public class ExpenseServiceImpl implements ExpenseService {
         double values = expensesByPaidByUserAndExpenseDate.getOrDefault(expense.getCategory(), 0.0)
                 + expense.getAmount().doubleValue() - expense.getShares().stream().map(ExpenseSplit::getOwesAmount).reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
         expensesByPaidByUserAndExpenseDate.put(expense.getCategory(), values);
+    }
+    
+    @Override
+    public List<DebtSummaryResponse> getDebtSummary(Long userId) {
+        List<ExpenseSplit> allSplits = expenseSplitRepository.findAll();
+        Map<Long, DebtCalculation> debtMap = new HashMap<>();
+        
+        for (ExpenseSplit split : allSplits) {
+            Long paidByUserId = split.getExpense().getPaidByUser().getUserId();
+            Long owesUserId = split.getUser().getUserId();
+            BigDecimal amount = split.getOwesAmount();
+            
+            if (paidByUserId.equals(userId)) {
+                debtMap.computeIfAbsent(owesUserId, k -> new DebtCalculation())
+                    .addTheyOwe(amount);
+            } else if (owesUserId.equals(userId)) {
+                debtMap.computeIfAbsent(paidByUserId, k -> new DebtCalculation())
+                    .addYouOwe(amount);
+            }
+        }
+        
+        List<DebtSummaryResponse> result = new ArrayList<>();
+        for (Map.Entry<Long, DebtCalculation> entry : debtMap.entrySet()) {
+            Long otherUserId = entry.getKey();
+            DebtCalculation calc = entry.getValue();
+            User otherUser = userRepository.findById(otherUserId).orElse(null);
+            
+            if (otherUser != null) {
+                BigDecimal netAmount = calc.theyOwe.subtract(calc.youOwe);
+                result.add(new DebtSummaryResponse(
+                    otherUserId,
+                    otherUser.getUsername(),
+                    calc.youOwe,
+                    calc.theyOwe,
+                    netAmount
+                ));
+            }
+        }
+        
+        return result;
+    }
+    
+    private static class DebtCalculation {
+        BigDecimal youOwe = BigDecimal.ZERO;
+        BigDecimal theyOwe = BigDecimal.ZERO;
+        
+        void addYouOwe(BigDecimal amount) {
+            youOwe = youOwe.add(amount);
+        }
+        
+        void addTheyOwe(BigDecimal amount) {
+            theyOwe = theyOwe.add(amount);
+        }
     }
 }
