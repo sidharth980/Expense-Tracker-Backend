@@ -47,4 +47,10 @@ public class ExpenseController {
             String result = expenseService.settleDebt(request);
             return new ResponseEntity<>(result, HttpStatus.OK);
     }
+
+    @PutMapping("/{expenseId}")
+    public ResponseEntity<Expense> updateExpense(@PathVariable Long expenseId, @RequestBody ExpenseRequest expense) {
+        Expense updatedExpense = expenseService.updateExpense(expenseId, expense);
+        return new ResponseEntity<>(updatedExpense, HttpStatus.OK);
+    }
 }

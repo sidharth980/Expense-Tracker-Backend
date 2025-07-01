@@ -23,4 +23,6 @@ public interface ExpenseService {
     List<DebtSummaryResponse> getDebtSummary(Long userId);
     
     String settleDebt(DebtSettlementRequest request);
+    
+    Expense updateExpense(Long expenseId, ExpenseRequest request);
 }

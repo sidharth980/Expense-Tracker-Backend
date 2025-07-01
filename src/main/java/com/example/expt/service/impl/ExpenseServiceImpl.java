@@ -217,6 +217,51 @@ public class ExpenseServiceImpl implements ExpenseService {
                 settledCount, totalSettled.doubleValue(), remainingAmount.doubleValue());
     }
 
+    @Override
+    @Transactional
+    public Expense updateExpense(Long expenseId, ExpenseRequest request) {
+        Expense existingExpense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Expense not found with ID: " + expenseId));
+
+        User paidByUser = userRepository.findById(request.userId())
+                .orElseThrow(() -> new IllegalArgumentException("User (payer) not found with ID: " + request.userId()));
+
+        Account accountUsed = accountRepository.findById(request.accountId())
+                .orElseThrow(() -> new IllegalArgumentException("Account not found with ID: " + request.accountId()));
+
+        BigDecimal oldAmount = existingExpense.getAmount();
+        BigDecimal newAmount = request.amount();
+        BigDecimal amountDifference = newAmount.subtract(oldAmount);
+
+        if (amountDifference.compareTo(BigDecimal.ZERO) != 0) {
+            accountService.updateAccountBalance(accountUsed.getAccountId(), amountDifference);
+        }
+
+        existingExpense.setDescription(request.description());
+        existingExpense.setAmount(newAmount);
+        existingExpense.setExpenseDate(request.expenseDate());
+        existingExpense.setPaidByUser(paidByUser);
+        existingExpense.setAccount(accountUsed);
+        existingExpense.setCategory(request.category());
+
+        existingExpense.getShares().clear();
+        
+        if (request.splitUser() != null && request.splitAmount() != null) {
+            User owingUser = userRepository.findById(request.splitUser())
+                    .orElseThrow(() -> new IllegalArgumentException("Split user not found with ID: " + request.splitUser()));
+
+            ExpenseSplit split = ExpenseSplit.builder()
+                    .user(owingUser)
+                    .owesAmount(request.splitAmount())
+                    .isSettled(false)
+                    .build();
+
+            existingExpense.addShare(split);
+        }
+
+        return expenseRepository.save(existingExpense);
+    }
+
     private static class DebtCalculation {
         BigDecimal youOwe = BigDecimal.ZERO;
         BigDecimal theyOwe = BigDecimal.ZERO;
