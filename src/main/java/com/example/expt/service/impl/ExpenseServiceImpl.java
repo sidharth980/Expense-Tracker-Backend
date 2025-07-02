@@ -115,6 +115,12 @@ public class ExpenseServiceImpl implements ExpenseService {
                 findExpensesByPaidByUserAndExpenseDateBetween(user, startOfMonth,
                         endOfMonth);
 
+        List<ExpenseSplit> expenseSplits = expenseSplitRepository.findAllByUserIdAndExpenseDateBetween(userId, startOfMonth, endOfMonth);
+        List<Expense> expensesFromSplits = expenseSplits.stream()
+                .map(ExpenseSplit::getExpense)
+                .toList();
+
+        expensesByPaidByUserAndExpenseDateBetween.addAll(expensesFromSplits);
         Map<String, Double> expensesByPaidByUserAndExpenseDate = new HashMap<>();
         expensesByPaidByUserAndExpenseDateBetween.forEach(expense ->
             addToMap(expense, expensesByPaidByUserAndExpenseDate));

@@ -4,20 +4,12 @@ FROM openjdk:17-jdk-slim
 # Set working directory
 WORKDIR /app
 
-# Copy all project files
-COPY . .
+# Copy the pre-built JAR file from your local `build/libs` directory into the container
+# The JAR file is renamed to app.jar for a consistent entrypoint
+COPY build/libs/expt-0.0.1-SNAPSHOT.jar app.jar
 
-# Make gradlew executable
-RUN chmod +x ./gradlew
-
-# Build the application
-RUN ./gradlew build -x test
-
-# Debug: List the contents of build/libs to see what JAR files are created
-RUN ls -la build/libs/
-
-# Expose port 8080
+# Expose port 8080 for the application
 EXPOSE 8080
 
-# Run the application using a more flexible approach
-CMD ["sh", "-c", "java -jar build/libs/*.jar"]
+# Run the application
+CMD ["java", "-jar", "app.jar"]

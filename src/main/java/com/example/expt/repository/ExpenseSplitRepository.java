@@ -16,5 +16,7 @@ public interface ExpenseSplitRepository extends JpaRepository<ExpenseSplit, Long
     @Query("SELECT es FROM ExpenseSplit es WHERE es.user.userId = :userId AND es.expense.paidByUser.userId = :settlersUserId AND es.isSettled = false ORDER BY es.expense.expenseDate ASC")
     List<ExpenseSplit> findUnsettledSplitsByUserAndSettler(@Param("userId") Long userId, @Param("settlersUserId") Long settlersUserId);
 
+    @Query("SELECT es FROM ExpenseSplit es WHERE es.user.userId = :userId AND es.expense.expenseDate BETWEEN :startDate AND :endDate")
+    List<ExpenseSplit> findAllByUserIdAndExpenseDateBetween(@Param("userId") Long userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     List<ExpenseSplit> findAllByIsSettled(Boolean isSettled);
 }

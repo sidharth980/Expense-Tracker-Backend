@@ -1,0 +1,7 @@
+.gradle
+.git
+.gitignore
+README.md
+.env
+*.log
+.docker
