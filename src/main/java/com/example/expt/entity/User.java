@@ -31,6 +31,13 @@ public class User {
     @JsonIgnore
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role;
+
+    @Column(name = "enabled", nullable = false)
+    private Boolean enabled;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -42,8 +49,17 @@ public class User {
         this.username = username;
     }
 
+
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

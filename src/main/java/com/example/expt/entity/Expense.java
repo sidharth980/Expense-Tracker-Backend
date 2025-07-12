@@ -63,7 +63,7 @@ public class Expense {
             this.shares = new ArrayList<>();
         }
         this.shares.add(share);
-        share.setExpense(this); // Crucial for bidirectionality and cascading
+        share.setExpense(this); 
     }
 
 
