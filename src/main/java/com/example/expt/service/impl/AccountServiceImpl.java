@@ -1,5 +1,6 @@
 package com.example.expt.service.impl;
 
+import com.example.expt.controller.CreateAccountRequest;
 import com.example.expt.controller.PayCreditCardRequest;
 import com.example.expt.entity.Account;
 import com.example.expt.entity.AccountType;
@@ -37,6 +38,23 @@ public class AccountServiceImpl implements AccountService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
         account.setUser(user);
+        return accountRepository.save(account);
+    }
+
+    @Override
+    public Account createAccount(Long userId, CreateAccountRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with id: " + userId));
+
+        Account account = new Account();
+        account.setUser(user);
+        account.setAccountName(request.getAccountName());
+        account.setAccountType(request.getAccountType());
+        account.setBalance(request.getBalance());
+        account.setCreditLimit(request.getCreditLimit());
+        account.setStatementDate(request.getStatementDate());
+        account.setCreatedAt(LocalDateTime.now());
+
         return accountRepository.save(account);
     }
 
@@ -93,7 +111,7 @@ public class AccountServiceImpl implements AccountService {
     public void payCreditCardStatement(PayCreditCardRequest request) {
         Account creditCardAccount = accountRepository.findById(request.getCreditCardAccountId())
                 .orElseThrow(() -> new NoSuchElementException("Credit card account not found with id: " + request.getCreditCardAccountId()));
-        
+
         Account paidByAccount = accountRepository.findById(request.getPaidByAccountId())
                 .orElseThrow(() -> new NoSuchElementException("Payment account not found with id: " + request.getPaidByAccountId()));
 

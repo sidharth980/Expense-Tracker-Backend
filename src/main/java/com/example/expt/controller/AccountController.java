@@ -56,4 +56,10 @@ public class AccountController {
         accountService.payCreditCardStatement(request);
         return new ResponseEntity<>("Credit card payment processed successfully", HttpStatus.OK);
     }
+
+    @PostMapping("/create/{userId}")
+    public ResponseEntity<Account> createAccount(@PathVariable Long userId, @RequestBody CreateAccountRequest request) {
+        Account newAccount = accountService.createAccount(userId, request);
+        return new ResponseEntity<>(newAccount, HttpStatus.CREATED);
+    }
 }
